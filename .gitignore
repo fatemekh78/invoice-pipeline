@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+data/sroie/*
+data/synthetic/*
+!data/sroie/.gitkeep
+!data/synthetic/.gitkeep
