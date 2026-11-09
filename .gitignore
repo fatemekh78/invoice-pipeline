@@ -1,0 +1,24 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Secrets: never commit keys or credentials
+.env
+*.p8
+*.pem
+*.key
+
+# Data: generated invoices can be regenerated, SROIE is downloaded separately.
+# Keep the folders, ignore their contents.
+data/synthetic/*
+data/sroie/*
+!data/synthetic/.gitkeep
+!data/sroie/.gitkeep
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,88 @@
+{
+  "properties": {
+    "doc_type": {
+      "enum": [
+        "invoice",
+        "receipt",
+        "other"
+      ],
+      "title": "Doc Type",
+      "type": "string"
+    },
+    "language": {
+      "enum": [
+        "en",
+        "sv",
+        "fi"
+      ],
+      "title": "Language",
+      "type": "string"
+    },
+    "supplier": {
+      "minLength": 1,
+      "title": "Supplier",
+      "type": "string"
+    },
+    "invoice_number": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Invoice Number"
+    },
+    "invoice_date": {
+      "format": "date",
+      "title": "Invoice Date",
+      "type": "string"
+    },
+    "currency": {
+      "enum": [
+        "EUR",
+        "SEK",
+        "GBP"
+      ],
+      "title": "Currency",
+      "type": "string"
+    },
+    "total": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "title": "Total"
+    },
+    "vat_amount": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "title": "Vat Amount"
+    }
+  },
+  "required": [
+    "doc_type",
+    "language",
+    "supplier",
+    "invoice_date",
+    "currency",
+    "total",
+    "vat_amount"
+  ],
+  "title": "InvoiceLabel",
+  "type": "object"
+}
