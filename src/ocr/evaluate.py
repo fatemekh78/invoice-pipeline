@@ -1,13 +1,13 @@
 import argparse
 import json
 import random
-
-from src.ocr.noise import NOISE_LEVELS, degrade_image
 from pathlib import Path
 
 from rapidfuzz.distance import Levenshtein
 
 from src.generate.formatting import format_date, format_invoice_text, format_money
+from src.ocr.noise import NOISE_LEVELS, degrade_image
+from src.ocr.preprocess import preprocess_image
 from src.ocr.read import read_pdf_text
 from src.schema import InvoiceLabel
 
@@ -45,7 +45,9 @@ def expected_fields(label: InvoiceLabel) -> dict:
     }
 
 
-def evaluate_language(folder: Path, language: str, limit: int, level: str = "clean") -> dict:
+def evaluate_language(
+    folder: Path, language: str, limit: int, level: str = "clean", preprocess=None
+) -> dict:
     pdf_files = sorted(Path(folder).glob(f"{language}_*.pdf"))[:limit]
 
     error_rates = []
@@ -57,7 +59,10 @@ def evaluate_language(folder: Path, language: str, limit: int, level: str = "cle
         # Same file + same level = same damage, so results are reproducible
         rng = random.Random(f"{pdf_path.stem}-{level}")
         ocr_text = normalize(read_pdf_text(
-            pdf_path, language, transform=lambda image: degrade_image(image, level, rng)
+            pdf_path,
+            language,
+            transform=lambda image: degrade_image(image, level, rng),
+            preprocess=preprocess,
         ))
 
         expected = normalize(expected_text(label))
@@ -74,16 +79,27 @@ def evaluate_language(folder: Path, language: str, limit: int, level: str = "cle
         "field_hit_rate": {name: hits[name] / count if count else 0.0 for name in FIELD_NAMES},
     }
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Measure OCR accuracy per language and noise level.")
     parser.add_argument("--folder", default="data/synthetic")
     parser.add_argument("--limit", type=int, default=30, help="invoices per language")
+    parser.add_argument("--levels", nargs="+", default=list(NOISE_LEVELS),
+                        choices=list(NOISE_LEVELS), help="noise levels to test")
+    parser.add_argument("--preprocess", action="store_true", help="clean the image before OCR")
     args = parser.parse_args()
 
-    for level in NOISE_LEVELS:
+    preprocess = preprocess_image if args.preprocess else None
+    print(f"preprocessing: {'on' if args.preprocess else 'off'}")
+
+    for level in args.levels:
         print(f"\n===== noise: {level} =====")
         for language in ("en", "sv", "fi"):
-            result = evaluate_language(Path(args.folder), language, args.limit, level)
+            result = evaluate_language(Path(args.folder), language, args.limit, level, preprocess)
             print(f"\n{language}: {result['documents']} documents, CER = {result['cer']:.4f}")
             for name, rate in result["field_hit_rate"].items():
                 print(f"  {name:<15} {rate:.1%}")
+
+
+if __name__ == "__main__":
+    main()

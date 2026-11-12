@@ -7,7 +7,8 @@ from PIL import Image, ImageFilter
 NOISE_LEVELS = {
     "clean": None,
     "mild": {"max_angle": 1.5, "blur": 0.6, "grain": 8, "scale": 0.8},
-    "heavy": {"max_angle": 4.0, "blur": 1.2, "grain": 25, "scale": 0.5},
+    "heavy": {"max_angle": 5.0, "blur": 1.2, "grain": 15, "scale": 0.6},
+    "severe": {"max_angle": 5.0, "blur": 1.2, "grain": 20, "scale": 0.6},
 }
 
 

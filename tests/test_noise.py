@@ -19,7 +19,7 @@ def test_clean_level_changes_nothing():
     assert np.array_equal(np.asarray(result), np.asarray(image))
 
 
-@pytest.mark.parametrize("level", ["mild", "heavy"])
+@pytest.mark.parametrize("level", ["mild", "heavy", "severe"])
 def test_noisy_levels_change_the_image(level):
     image = make_test_image()
 
@@ -29,7 +29,7 @@ def test_noisy_levels_change_the_image(level):
     assert not np.array_equal(np.asarray(result), np.asarray(image))
 
 
-@pytest.mark.parametrize("level", ["mild", "heavy"])
+@pytest.mark.parametrize("level", ["mild", "heavy", "severe"])
 def test_same_seed_gives_same_noise(level):
     first = degrade_image(make_test_image(), level, random.Random(7))
     second = degrade_image(make_test_image(), level, random.Random(7))

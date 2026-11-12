@@ -19,11 +19,13 @@ def pdf_to_image(pdf_path: Path, dpi: int = 200) -> Image.Image:
         return Image.frombytes("RGB", (pixmap.width, pixmap.height), pixmap.samples)
 
 
-def read_pdf_text(pdf_path: Path, language: str, transform=None) -> str:
+def read_pdf_text(pdf_path: Path, language: str, transform=None, preprocess=None) -> str:
     if language not in TESSERACT_LANGUAGE:
         raise ValueError(f"Unknown language: {language}")
 
     image = pdf_to_image(pdf_path)
     if transform is not None:
         image = transform(image)  # e.g. add noise before OCR
+    if preprocess is not None:
+        image = preprocess(image)  # e.g. clean the image before OCR
     return pytesseract.image_to_string(image, lang=TESSERACT_LANGUAGE[language])
