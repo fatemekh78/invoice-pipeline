@@ -2,3 +2,7 @@
 pydantic
 pytest
 reportlab
+pytesseract 
+pymupdf
+rapidfuzz
+numpy
