@@ -1,3 +1,4 @@
 # Add packages here as each step needs them.
 pydantic
 pytest
+reportlab
