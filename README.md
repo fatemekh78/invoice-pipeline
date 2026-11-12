@@ -28,3 +28,8 @@ python -m venv .venv
 # source .venv/bin/activate   # macOS / Linux
 pip install -r requirements.txt
 ```
+## Generate the synthetic dataset
+
+    python -m src.generate.build_dataset --count 100
+
+Creates PDF invoices (English, Swedish, Finnish) with a matching JSON answer file for each, in `data/synthetic/`.
