@@ -1,11 +1,13 @@
 import random
 from datetime import date, timedelta
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 
 # Settings per language. The VAT rates are only for synthetic data.
 LANGUAGE_SETTINGS = {
-    "fi": {"currency": "EUR", "vat_rate": Decimal("0.255"),
-           "name_starts": ["Koivu", "Aalto", "Harju", "Niemi", "Virta",
+    "fi": {
+        "currency": "EUR",
+        "vat_rate": Decimal("0.255"),
+        "name_starts": ["Koivu", "Aalto", "Harju", "Niemi", "Virta",
                         "Salo", "Laine", "Kallio", "Rinne", "Nordic"],
         "business_words": ["Palvelut", "Kauppa", "Logistiikka", "Tekniikka",
                            "Rakennus", "Konsultointi", "Huolto", "Tukku"],
@@ -33,10 +35,12 @@ LANGUAGE_SETTINGS = {
 
 CENT = Decimal("0.01")
 
+
 def make_supplier_name(settings: dict, rng: random.Random) -> str:
     start = rng.choice(settings["name_starts"])
     word = rng.choice(settings["business_words"])
     return f"{start} {word} {settings['suffix']}"
+
 
 def make_invoice_truth(language: str, rng: random.Random) -> dict:
     settings = LANGUAGE_SETTINGS[language]
@@ -44,10 +48,9 @@ def make_invoice_truth(language: str, rng: random.Random) -> dict:
     supplier = make_supplier_name(settings, rng)
     invoice_number = str(rng.randint(10000, 99999))
     invoice_date = date(2026, 1, 1) + timedelta(days=rng.randint(0, 364))
+
     net = (Decimal(rng.randint(5000, 500000)) / Decimal("100")).quantize(CENT)
-    vat = (net * settings["vat_rate"]).quantize(
-        CENT, rounding=ROUND_HALF_UP
-    )
+    vat = (net * settings["vat_rate"]).quantize(CENT, rounding=ROUND_HALF_UP)
     total = net + vat
 
     return {

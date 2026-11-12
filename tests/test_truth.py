@@ -29,3 +29,12 @@ def test_vat_matches_rate(language):
         truth = make_invoice_truth(language, random.Random(seed))
         net = truth["total"] - truth["vat_amount"]
         assert truth["vat_amount"] == (net * rate).quantize(CENT, rounding=ROUND_HALF_UP)
+
+
+@pytest.mark.parametrize("language", ["en", "sv", "fi"])
+def test_supplier_names_have_variety(language):
+    suppliers = {
+        make_invoice_truth(language, random.Random(seed))["supplier"]
+        for seed in range(100)
+    }
+    assert len(suppliers) > 20
