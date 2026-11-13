@@ -127,9 +127,27 @@ Tesseract fails on a whole page rather than on single characters (this is why
 all fields in the `severe` rows are almost equal).
 
 ### Preprocessing (in progress)
+### Preprocessing
 
-Grayscale, median filter and upscaling before OCR, compared on the `heavy` and
-`severe` levels. Results will be added here.
+Before OCR, each image is converted to grayscale, cleaned with a 3x3 median
+filter (removes grain) and upscaled by 1.5 (from 200 to about 300 DPI). Same
+30 invoices per language and the same damage as the baseline.
+
+| Noise level | Language | CER before → after | Field accuracy before → after |
+|---|---|---|---|
+| heavy | en | 0.0688 → 0.0101 | 90.0–93.3% → 96.7–100% |
+| heavy | sv | 0.0175 → 0.0173 | 93.3–100% → 93.3–100% |
+| heavy | fi | 0.0208 → 0.0381 | 93.3–100% → 93.3–100% |
+| severe | en | 0.4667 → 0.0109 | 53.3% → 86.7–100% |
+| severe | sv | 0.4009 → 0.0355 | 50.0–60.0% → 86.7–100% |
+| severe | fi | 0.4346 → 0.0026 | 50.0–56.7% → 86.7–100% |
+
+The filter fixes the whole-page failures caused by strong grain. At moderate
+noise (`heavy`) the effect is small and mixed: English improves, Swedish is
+unchanged and Finnish CER is slightly worse (a difference of one or two pages,
+within the noise of a 30-invoice sample).
+
+Full output: `results/ocr_preprocessed.txt`.
 
 ## Limitations
 
@@ -142,12 +160,16 @@ Grayscale, median filter and upscaling before OCR, compared on the `heavy` and
   3 percentage points, so small differences between languages are not
   meaningful.
 - Invoices contain only five fields and no line items or tables.
+- The median filter is well matched to this synthetic noise (independent
+  per-pixel grain). Gains on real scans may be smaller.
+- Preprocessing was chosen after seeing the baseline results and evaluated on
+  the same invoices; no parameters were tuned.
 
 ## Roadmap
 
 - [x] Data schema, synthetic generator, tests
 - [x] OCR reader and evaluation with noise levels
-- [ ] Image preprocessing and before/after comparison
+- [x] Image preprocessing and before/after comparison
 - [ ] Document type classifier (invoice, receipt, other)
 - [ ] Field extraction (rules first, then a trained model)
 - [ ] API (FastAPI) and review dashboard, Docker

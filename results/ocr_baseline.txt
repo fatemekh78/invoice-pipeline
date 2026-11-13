@@ -1,0 +1,94 @@
+preprocessing: off
+===== noise: clean =====
+
+en: 30 documents, CER = 0.0000
+  supplier        100.0%
+  invoice_number  100.0%
+  invoice_date    100.0%
+  vat_amount      100.0%
+  total           100.0%
+
+sv: 30 documents, CER = 0.0000
+  supplier        100.0%
+  invoice_number  100.0%
+  invoice_date    100.0%
+  vat_amount      100.0%
+  total           100.0%
+
+fi: 30 documents, CER = 0.0000
+  supplier        100.0%
+  invoice_number  100.0%
+  invoice_date    100.0%
+  vat_amount      100.0%
+  total           100.0%
+
+===== noise: mild =====
+
+en: 30 documents, CER = 0.0000
+  supplier        100.0%
+  invoice_number  100.0%
+  invoice_date    100.0%
+  vat_amount      100.0%
+  total           100.0%
+
+sv: 30 documents, CER = 0.0003
+  supplier        100.0%
+  invoice_number  100.0%
+  invoice_date    100.0%
+  vat_amount      100.0%
+  total           100.0%
+
+fi: 30 documents, CER = 0.0003
+  supplier        100.0%
+  invoice_number  100.0%
+  invoice_date    100.0%
+  vat_amount      96.7%
+  total           100.0%
+
+===== noise: heavy =====
+
+en: 30 documents, CER = 0.0688
+  supplier        93.3%
+  invoice_number  90.0%
+  invoice_date    93.3%
+  vat_amount      90.0%
+  total           93.3%
+
+sv: 30 documents, CER = 0.0175
+  supplier        93.3%
+  invoice_number  100.0%
+  invoice_date    100.0%
+  vat_amount      100.0%
+  total           100.0%
+
+fi: 30 documents, CER = 0.0208
+  supplier        96.7%
+  invoice_number  100.0%
+  invoice_date    100.0%
+  vat_amount      96.7%
+  total           93.3%
+
+===== noise: severe =====
+
+en: 30 documents, CER = 0.4667
+  supplier        53.3%
+  invoice_number  53.3%
+  invoice_date    53.3%
+  vat_amount      53.3%
+  total           53.3%
+
+sv: 30 documents, CER = 0.4009
+  supplier        50.0%
+  invoice_number  60.0%
+  invoice_date    60.0%
+  vat_amount      60.0%
+  total           60.0%
+
+fi: 30 documents, CER = 0.4346
+  supplier        50.0%
+  invoice_number  56.7%
+  invoice_date    56.7%
+  vat_amount      56.7%
+  total           53.3%
+
+

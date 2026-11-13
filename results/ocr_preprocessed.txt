@@ -1,0 +1,47 @@
+preprocessing: on
+
+===== noise: heavy =====
+
+en: 30 documents, CER = 0.0101
+  supplier        96.7%
+  invoice_number  96.7%
+  invoice_date    96.7%
+  vat_amount      96.7%
+  total           100.0%
+
+sv: 30 documents, CER = 0.0173
+  supplier        93.3%
+  invoice_number  100.0%
+  invoice_date    96.7%
+  vat_amount      96.7%
+  total           100.0%
+
+fi: 30 documents, CER = 0.0381
+  supplier        93.3%
+  invoice_number  100.0%
+  invoice_date    100.0%
+  vat_amount      96.7%
+  total           96.7%
+
+===== noise: severe =====
+
+en: 30 documents, CER = 0.0109
+  supplier        96.7%
+  invoice_number  100.0%
+  invoice_date    86.7%
+  vat_amount      100.0%
+  total           96.7%
+
+sv: 30 documents, CER = 0.0355
+  supplier        86.7%
+  invoice_number  100.0%
+  invoice_date    100.0%
+  vat_amount      93.3%
+  total           96.7%
+
+fi: 30 documents, CER = 0.0026
+  supplier        86.7%
+  invoice_number  100.0%
+  invoice_date    100.0%
+  vat_amount      100.0%
+  total           86.7%
