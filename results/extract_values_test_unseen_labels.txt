@@ -1,0 +1,11 @@
+NOTE: this is the test set. Run it once, at the very end, and do not tune on it.
+extractor: values | folder: data/synthetic_holdout | split: test | preprocessing: off
+
+===== noise: clean =====
+
+fi: 30 documents
+  supplier        100.0%
+  invoice_number  100.0%
+  invoice_date    100.0%
+  vat_amount      100.0%
+  total           100.0%

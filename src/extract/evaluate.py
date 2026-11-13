@@ -1,5 +1,6 @@
 import argparse
 import random
+
 from pathlib import Path
 
 from src.extract.rules import extract_fields
@@ -9,7 +10,9 @@ from src.ocr.noise import NOISE_LEVELS, degrade_image
 from src.ocr.preprocess import preprocess_image
 from src.ocr.read import read_pdf_text
 from src.schema import InvoiceLabel
+from src.extract.values import extract_fields_by_value
 
+EXTRACTORS = {"rules": extract_fields, "values": extract_fields_by_value}
 
 def expected_values(label: InvoiceLabel) -> dict:
     return {
@@ -27,8 +30,10 @@ def evaluate_extraction(
     split: str = "dev",
     level: str = "clean",
     preprocess=None,
-    limit: int | None = None,
+       limit: int | None = None,
+    extractor=extract_fields,
 ) -> dict:
+
     pdf_files = list_documents(folder, language, split)
     if limit:
         pdf_files = pdf_files[:limit]
@@ -48,7 +53,7 @@ def evaluate_extraction(
             preprocess=preprocess,
         )
 
-        extracted = extract_fields(ocr_text, language)
+        extracted = extractor(ocr_text, language)
         expected = expected_values(label)
 
         for name in FIELD_NAMES:
@@ -78,6 +83,7 @@ def main() -> None:
     parser.add_argument("--levels", nargs="+", default=["clean"],
                         choices=list(NOISE_LEVELS), help="noise levels to test")
     parser.add_argument("--preprocess", action="store_true", help="clean the image before OCR")
+    parser.add_argument("--extractor", choices=list(EXTRACTORS), default="rules")
     parser.add_argument("--show-failures", type=int, default=5,
                         help="failures to print per language (0 = none)")
     args = parser.parse_args()
@@ -86,21 +92,22 @@ def main() -> None:
         print("NOTE: this is the test set. Run it once, at the very end, and do not tune on it.")
 
     preprocess = preprocess_image if args.preprocess else None
-    print(f"folder: {args.folder} | split: {args.split} | preprocessing: "
-          f"{'on' if args.preprocess else 'off'}")
+    print(f"extractor: {args.extractor} | folder: {args.folder} | split: {args.split} | "
+          f"preprocessing: {'on' if args.preprocess else 'off'}")
 
     for level in args.levels:
         print(f"\n===== noise: {level} =====")
         for language in ("en", "sv", "fi"):
-            result = evaluate_extraction(
-                Path(args.folder), language, args.split, level, preprocess, args.limit
+                        result = evaluate_extraction(
+                Path(args.folder), language, args.split, level, preprocess, args.limit,
+                EXTRACTORS[args.extractor],
             )
-            print(f"\n{language}: {result['documents']} documents")
-            for name, rate in result["field_accuracy"].items():
+    print(f"\n{language}: {result['documents']} documents")
+    for name, rate in result["field_accuracy"].items():
                 print(f"  {name:<15} {rate:.1%}")
 
-            for failure in result["failures"][: args.show_failures]:
-                print(f"    MISS {failure['document']} {failure['field']}: "
+                for failure in result["failures"][: args.show_failures]:
+                 print(f"    MISS {failure['document']} {failure['field']}: "
                       f"expected {failure['expected']!r}, got {failure['got']!r}")
 
 

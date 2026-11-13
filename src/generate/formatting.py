@@ -43,7 +43,30 @@ LABELS = {
     language: {key: values[0] for key, values in options.items()}
     for language, options in LABEL_VARIANTS.items()
 }
-
+# Wordings used ONLY for the held-out test invoices (never in dev, never in the rules)
+HOLDOUT_LABEL_VARIANTS = {
+    "en": {
+        "title": ["Invoice"],
+        "number": ["Document no.", "Our no.", "Inv. no."],
+        "date": ["Document date", "Issue date", "Billing date"],
+        "vat": ["Tax", "Sales tax", "Tax amount"],
+        "total": ["Net payable", "Payable now", "Sum due"],
+    },
+    "sv": {
+        "title": ["Faktura"],
+        "number": ["Dokumentnr", "Vårt nr", "Betalningsreferens"],
+        "date": ["Utfärdad", "Utskriftsdatum", "Dokumentdatum"],
+        "vat": ["Skatt", "Mervärdesskatt", "Skattebelopp"],
+        "total": ["Slutsumma", "Kvar att betala", "Fakturabelopp"],
+    },
+    "fi": {
+        "title": ["Lasku"],
+        "number": ["Tositenumero", "Laskun tunnus", "Dokumentin numero"],
+        "date": ["Laskupäivä", "Päivätty", "Dokumentin päivämäärä"],
+        "vat": ["Vero", "Veron määrä", "Verot yhteensä"],
+        "total": ["Kokonaissumma", "Maksettavaa", "Laskun summa"],
+    },
+}
 
 def _check_language(language: str) -> None:
     if language not in SUPPORTED_LANGUAGES:
@@ -73,14 +96,17 @@ def format_date(value: date, language: str) -> str:
     return f"{value.day}.{value.month}.{value.year}"
 
 
-def format_invoice_text(truth: dict, rng: random.Random | None = None) -> str:
+def format_invoice_text(
+    truth: dict, rng: random.Random | None = None, variants: dict | None = None
+) -> str:
     language = truth["language"]
     _check_language(language)
 
     if rng is None:
         labels = LABELS[language]  # standard labels, standard order
     else:
-        labels = {key: rng.choice(values) for key, values in LABEL_VARIANTS[language].items()}
+        pool = variants[language] if variants is not None else LABEL_VARIANTS[language]
+        labels = {key: rng.choice(values) for key, values in pool.items()}
 
     invoice_date = date.fromisoformat(truth["invoice_date"])
 

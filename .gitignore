@@ -23,3 +23,4 @@ data/sroie/*
 .DS_Store
 Thumbs.db
 data/synthetic_varied/
+data/synthetic_holdout/
