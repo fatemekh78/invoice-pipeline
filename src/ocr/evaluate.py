@@ -65,7 +65,11 @@ def evaluate_language(
             preprocess=preprocess,
         ))
 
-        expected = normalize(expected_text(label))
+        # Use the exact text that was printed in the PDF if it was saved (.txt file),
+        # otherwise rebuild the standard text (the original dataset)
+        text_path = pdf_path.with_suffix(".txt")
+        printed = text_path.read_text(encoding="utf-8") if text_path.exists() else expected_text(label)
+        expected = normalize(printed)
         error_rates.append(Levenshtein.normalized_distance(ocr_text, expected))
 
         for name, value in expected_fields(label).items():
@@ -102,4 +106,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    main()
     main()

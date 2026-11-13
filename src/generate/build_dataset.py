@@ -9,7 +9,9 @@ from src.generate.truth import LANGUAGE_SETTINGS, make_invoice_truth
 from src.schema import InvoiceLabel
 
 
-def build_dataset(output_dir: Path, count_per_language: int, base_seed: int = 0) -> int:
+def build_dataset(
+    output_dir: Path, count_per_language: int, base_seed: int = 0, varied: bool = False
+) -> int:
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -23,7 +25,12 @@ def build_dataset(output_dir: Path, count_per_language: int, base_seed: int = 0)
             layout = rng.choice(LAYOUTS)
             doc_id = f"{language}_{number:04d}"
 
-            render_invoice_pdf(format_invoice_text(truth), output_dir / f"{doc_id}.pdf", layout)
+            # Drawn AFTER the truth and the layout, so the invoice data and the
+            # layout are identical with and without --varied
+            text = format_invoice_text(truth, rng) if varied else format_invoice_text(truth)
+
+            render_invoice_pdf(text, output_dir / f"{doc_id}.pdf", layout)
+            (output_dir / f"{doc_id}.txt").write_text(text, encoding="utf-8")
 
             label = InvoiceLabel(**truth).model_dump(mode="json")
             (output_dir / f"{doc_id}.json").write_text(
@@ -35,12 +42,14 @@ def build_dataset(output_dir: Path, count_per_language: int, base_seed: int = 0)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Generate synthetic invoices (PDF + JSON).")
+    parser = argparse.ArgumentParser(description="Generate synthetic invoices (PDF + JSON + TXT).")
     parser.add_argument("--count", type=int, default=100, help="invoices per language")
     parser.add_argument("--out", default="data/synthetic", help="output folder")
+    parser.add_argument("--varied", action="store_true",
+                        help="use several label wordings and a random line order")
     args = parser.parse_args()
 
-    total = build_dataset(Path(args.out), args.count)
+    total = build_dataset(Path(args.out), args.count, varied=args.varied)
     print(f"Created {total} invoices in {args.out}")
 
 

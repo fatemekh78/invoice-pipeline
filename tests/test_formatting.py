@@ -1,9 +1,17 @@
+import random
 from datetime import date
 from decimal import Decimal
 
 import pytest
 
-from src.generate.formatting import format_date, format_invoice_text, format_money
+from src.generate.formatting import (
+    LABEL_VARIANTS,
+    LABELS,
+    format_date,
+    format_invoice_text,
+    format_money,
+)
+from src.generate.truth import make_invoice_truth
 
 
 @pytest.mark.parametrize("amount, language, expected", [
@@ -111,3 +119,42 @@ def test_format_invoice_text_english():
 def test_format_invoice_text_unknown_language():
     with pytest.raises(ValueError):
         format_invoice_text({"language": "de"})
+
+
+def test_standard_labels_are_the_first_variant():
+    for language, options in LABEL_VARIANTS.items():
+        for key, values in options.items():
+            assert LABELS[language][key] == values[0]
+
+
+@pytest.mark.parametrize("language", ["en", "sv", "fi"])
+def test_varied_text_is_reproducible(language):
+    truth = make_invoice_truth(language, random.Random(5))
+
+    first = format_invoice_text(truth, random.Random(1))
+    second = format_invoice_text(truth, random.Random(1))
+
+    assert first == second
+
+
+@pytest.mark.parametrize("language", ["en", "sv", "fi"])
+def test_varied_text_really_varies(language):
+    truth = make_invoice_truth(language, random.Random(5))
+
+    texts = {format_invoice_text(truth, random.Random(seed)) for seed in range(50)}
+
+    assert len(texts) > 10
+
+
+@pytest.mark.parametrize("language", ["en", "sv", "fi"])
+def test_varied_text_keeps_all_values_correct(language):
+    truth = make_invoice_truth(language, random.Random(5))
+
+    for seed in range(30):
+        text = format_invoice_text(truth, random.Random(seed))
+        lines = text.split("\n")
+
+        assert lines[1] == truth["supplier"]  # the PDF layout depends on this
+        assert truth["invoice_number"] in text
+        assert format_date(date.fromisoformat(truth["invoice_date"]), language) in text
+        assert format_money(truth["vat_amount"], language) in text

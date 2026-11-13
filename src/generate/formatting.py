@@ -1,3 +1,4 @@
+import random
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
 
@@ -12,14 +13,37 @@ MONTHS_EN = [
     "July", "August", "September", "October", "November", "December",
 ]
 
-LABELS = {
-    "en": {"title": "Invoice", "number": "Invoice no.", "date": "Date",
-           "vat": "VAT", "total": "Total"},
-    "sv": {"title": "Faktura", "number": "Fakturanummer", "date": "Datum",
-           "vat": "Moms", "total": "Att betala"},
-    "fi": {"title": "Lasku", "number": "Laskun numero", "date": "Päivämäärä",
-           "vat": "ALV", "total": "Yhteensä"},
+# Several ways to write each label. The FIRST variant is the standard one.
+LABEL_VARIANTS = {
+    "en": {
+        "title": ["Invoice"],
+        "number": ["Invoice no.", "Invoice number", "Ref", "Invoice #"],
+        "date": ["Date", "Invoice date", "Issued"],
+        "vat": ["VAT", "VAT amount", "VAT total"],
+        "total": ["Total", "Amount due", "Grand total", "Balance to pay"],
+    },
+    "sv": {
+        "title": ["Faktura"],
+        "number": ["Fakturanummer", "Fakturanr", "Ref"],
+        "date": ["Datum", "Fakturadatum"],
+        "vat": ["Moms", "Varav moms"],
+        "total": ["Att betala", "Totalt", "Summa att betala"],
+    },
+    "fi": {
+        "title": ["Lasku"],
+        "number": ["Laskun numero", "Laskunro", "Laskunumero"],
+        "date": ["Päivämäärä", "Laskun päivämäärä", "Päiväys"],
+        "vat": ["ALV", "ALV yhteensä", "Arvonlisävero"],
+        "total": ["Yhteensä", "Maksettava yhteensä", "Loppusumma"],
+    },
 }
+
+# The standard labels = the first variant of each
+LABELS = {
+    language: {key: values[0] for key, values in options.items()}
+    for language, options in LABEL_VARIANTS.items()
+}
+
 
 def _check_language(language: str) -> None:
     if language not in SUPPORTED_LANGUAGES:
@@ -48,21 +72,26 @@ def format_date(value: date, language: str) -> str:
         return value.isoformat()
     return f"{value.day}.{value.month}.{value.year}"
 
-def format_invoice_text(truth: dict) -> str:
+
+def format_invoice_text(truth: dict, rng: random.Random | None = None) -> str:
     language = truth["language"]
     _check_language(language)
-    labels = LABELS[language]
+
+    if rng is None:
+        labels = LABELS[language]  # standard labels, standard order
+    else:
+        labels = {key: rng.choice(values) for key, values in LABEL_VARIANTS[language].items()}
 
     invoice_date = date.fromisoformat(truth["invoice_date"])
 
-    lines = [
-        labels["title"],
-        truth["supplier"],
-        "",
+    details = [
         f"{labels['number']}: {truth['invoice_number']}",
         f"{labels['date']}: {format_date(invoice_date, language)}",
         f"{labels['vat']}: {format_money(truth['vat_amount'], language)}",
         f"{labels['total']}: {format_money(truth['total'], language)}",
     ]
+    if rng is not None:
+        rng.shuffle(details)  # the four detail lines come in a random order
 
+    lines = [labels["title"], truth["supplier"], ""] + details
     return "\n".join(lines)
