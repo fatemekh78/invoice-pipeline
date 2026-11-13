@@ -48,3 +48,18 @@ def test_missing_fields_are_none_not_guesses():
 def test_unknown_language_is_rejected():
     with pytest.raises(ValueError):
         extract_fields("anything", "de")
+
+
+@pytest.mark.parametrize("language", ["en", "sv", "fi"])
+def test_extracts_every_field_from_varied_labels(language):
+    for seed in range(200):
+        truth = make_invoice_truth(language, random.Random(seed))
+        text = format_invoice_text(truth, random.Random(seed + 1000))
+
+        fields = extract_fields(text, language)
+
+        assert fields["supplier"] == truth["supplier"]
+        assert fields["invoice_number"] == truth["invoice_number"]
+        assert fields["invoice_date"] == date.fromisoformat(truth["invoice_date"])
+        assert fields["vat_amount"] == truth["vat_amount"]
+        assert fields["total"] == truth["total"]

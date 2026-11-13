@@ -5,12 +5,24 @@ from src.extract.parse import parse_date, parse_money
 
 # Words that introduce each field, per language (lowercase)
 KEYWORDS = {
-    "en": {"invoice_number": ["invoice no"], "invoice_date": ["date"],
-           "vat_amount": ["vat"], "total": ["total"]},
-    "sv": {"invoice_number": ["fakturanummer"], "invoice_date": ["datum"],
-           "vat_amount": ["moms"], "total": ["att betala"]},
-    "fi": {"invoice_number": ["laskun numero"], "invoice_date": ["päivämäärä"],
-           "vat_amount": ["alv"], "total": ["yhteensä"]},
+    "en": {
+        "invoice_number": ["invoice no", "invoice number", "ref", "invoice #"],
+        "invoice_date": ["date", "invoice date", "issued"],
+        "vat_amount": ["vat", "vat amount", "vat total"],
+        "total": ["total", "amount due", "grand total", "balance to pay"],
+    },
+    "sv": {
+        "invoice_number": ["fakturanummer", "fakturanr", "ref"],
+        "invoice_date": ["datum", "fakturadatum"],
+        "vat_amount": ["moms", "varav moms"],
+        "total": ["att betala", "totalt", "summa att betala"],
+    },
+    "fi": {
+        "invoice_number": ["laskun numero", "laskunro", "laskunumero"],
+        "invoice_date": ["päivämäärä", "laskun päivämäärä", "päiväys"],
+        "vat_amount": ["alv", "alv yhteensä", "arvonlisävero"],
+        "total": ["yhteensä", "maksettava yhteensä", "loppusumma"],
+    },
 }
 
 # A supplier line ends with a company suffix, e.g. "Koivu Palvelut Oy"
@@ -18,14 +30,14 @@ SUPPLIER_PATTERN = re.compile(r"^.+\s(?:Oy|AB|Ltd)$")
 
 
 def _value_after_keyword(lines: list[str], keywords: list[str]) -> str | None:
+    ordered = sorted(keywords, key=len, reverse=True)  # longest keyword first
     for line in lines:
         lowered = line.lower()
-        for keyword in keywords:
+        for keyword in ordered:
             if lowered.startswith(keyword):
                 # "Invoice no.: 10234" -> "10234"
                 return line[len(keyword):].lstrip(" .:").strip()
     return None
-
 
 def _parse_or_none(parser, value: str | None, language: str):
     if value is None:

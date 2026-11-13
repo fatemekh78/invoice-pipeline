@@ -1,0 +1,24 @@
+folder: data/synthetic_varied | split: dev | preprocessing: off
+
+===== noise: clean =====
+
+en: 70 documents
+  supplier        100.0%
+  invoice_number  100.0%
+  invoice_date    100.0%
+  vat_amount      100.0%
+  total           100.0%
+
+sv: 70 documents
+  supplier        100.0%
+  invoice_number  100.0%
+  invoice_date    100.0%
+  vat_amount      100.0%
+  total           100.0%
+
+fi: 70 documents
+  supplier        100.0%
+  invoice_number  100.0%
+  invoice_date    100.0%
+  vat_amount      100.0%
+  total           100.0%
