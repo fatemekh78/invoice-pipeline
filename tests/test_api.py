@@ -82,3 +82,13 @@ def test_broken_pdf_gives_a_clean_error():
     response = post_pdf(b"%PDF-1.4 this is not a real pdf", "fi")
 
     assert response.status_code == 422
+
+def test_wrong_language_gives_empty_fields_not_wrong_values(tmp_path):
+    truth = make_invoice_truth("en", random.Random(1))
+    pdf = make_pdf(tmp_path, format_invoice_text(truth))
+
+    body = post_pdf(pdf, "fi").json()
+
+    assert body["needs_review"] is True
+    for name in ("invoice_date", "vat_amount", "total"):
+        assert body["fields"][name] is None

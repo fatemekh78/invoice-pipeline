@@ -2,14 +2,15 @@
 
 An end-to-end pipeline that reads invoices in English, Swedish and Finnish:
 synthetic data generation, OCR, field extraction (supplier, invoice number,
-date, VAT, total) and a review layer that flags doubtful results. A document
-classifier and an API are planned.
+date, VAT, total), a review layer that flags doubtful results, an API and a
+small review dashboard. A document classifier and Docker packaging are planned.
 
 This is my own project, built to learn document automation for accounting.
 
 **Status:** work in progress. Data generation, OCR evaluation, preprocessing,
-field extraction and a review layer are done. All results so far are on
-synthetic invoices. The API, dashboard and document classifier are planned.
+field extraction, the review layer, the API and the review dashboard are done.
+All results so far are on synthetic invoices. Docker packaging and a document
+type classifier are planned.
 
 ## What works so far
 
@@ -30,6 +31,11 @@ synthetic invoices. The API, dashboard and document classifier are planned.
   development set and a held-out test set.
 - **Review layer**: merges the two extractors and flags doubtful invoices for
   manual review (missing field, extractors disagree, VAT inconsistent with total).
+- **API** (`src/api.py`): FastAPI endpoint that takes a PDF and a language and
+  returns the extracted fields with review reasons.
+- **Review dashboard** (`src/dashboard.py`): Streamlit page that shows the
+  invoice next to the extracted fields and review reasons, lets a person correct
+  values, and exports the reviewed record with the original and corrected values.
 - **Tests**: automated tests for every module (`pytest`).
 
 ## Setup
@@ -87,6 +93,24 @@ Measure the review layer (two extractors plus checks) under OCR noise:
 
 ```bash
 python -m src.extract.review_eval --levels heavy severe --preprocess
+```
+
+Run the API and open http://127.0.0.1:8000/docs:
+
+```bash
+python -m uvicorn src.api:app --reload --reload-dir src
+```
+
+`POST /extract` takes a PDF and a language (`en`, `sv` or `fi`) and returns the
+five fields as text (money as `"1245.50"`), a `needs_review` flag and the list
+of review reasons. A file that is not a PDF is rejected with 400, a file over
+10 MB with 413, and a PDF that cannot be read with 422.
+
+Run the review dashboard (upload a PDF, see the extracted fields next to the
+page, correct them and download the reviewed record):
+
+```bash
+python -m streamlit run src/dashboard.py
 ```
 
 Run the tests:
@@ -236,13 +260,30 @@ Full output: `results/review_dev_noisy_preprocessed.txt`,
 
 On the test set, invoice `en_0089` had its total read as `1474.9` instead of
 `1474.91`. A one-cent error in the total cannot be detected from the VAT alone:
-the VAT check is only sensitive to larger errors. Detecting it would need
-redundancy on the invoice (for example a separate net amount or line items).
+the VAT check is only sensitive to larger errors, while a one-cent error in the
+VAT is detected. Both cases have a unit test (`tests/test_validate.py`). Detecting
+the total error would need redundancy on the invoice (for example a separate net
+amount or line items). The dashboard says this to the reviewer instead of
+claiming the values are correct.
 
 ### Supplier name
 
 The supplier name has no check. Supplier errors (on dev mostly letter-case
 differences) pass unflagged and are counted separately in the "any field" columns.
+
+## API and dashboard
+
+Both call the same function (`src/pipeline.py`): OCR with preprocessing, the two
+extractors, the merge and the checks.
+
+- A wrong language does not produce wrong values: with an English invoice sent
+  as Finnish, the date, VAT and total came back empty and the invoice was
+  flagged (checked by hand and by a test).
+- The API checks the file content (`%PDF`) instead of trusting the file name or
+  content type, limits the size, and does not use the uploaded file name.
+- The dashboard only accepts amounts with digits 0-9 and a dot, and real dates
+  in `YYYY-MM-DD`, so a typo is rejected instead of being converted silently. The
+  exported record keeps the original and the corrected value of every field.
 
 ## Limitations
 
@@ -270,10 +311,19 @@ differences) pass unflagged and are counted separately in the "any field" column
   set, so dev results for the review layer are optimistic.
 - The VAT-rate check uses one fixed rate per language and zero tolerance. Real
   invoices can have several rates and different rounding.
+- The language chosen for an invoice also sets the expected VAT rate, so an
+  invoice whose language and VAT rate do not belong together always needs a
+  manual check.
+- A one-cent error in the total is not detected by the checks (see "The one
+  silent error"). A passing review does not prove the values are correct.
 - The review layer was run once on the test set; its one silent error was not
   fixed afterwards, to keep the test result honest.
 - Counts are small (30 invoices per language; 6 invoices with a wrong critical
   value on test), so these numbers show what kinds of errors occur, not precise rates.
+- The API takes the language from the caller and does not detect it.
+- The API and the dashboard are local tools without login, storage or
+  multi-user support. The dashboard was tried by hand; only its logic
+  (`src/review.py`) has automated tests.
 
 ## Roadmap
 
@@ -282,9 +332,11 @@ differences) pass unflagged and are counted separately in the "any field" column
 - [x] Image preprocessing and before/after comparison
 - [x] Field extraction: keyword rules and value-based, with a held-out test set
 - [x] Extraction under OCR noise (preprocessing on), with a review layer
+- [x] API (FastAPI)
+- [x] Review dashboard (Streamlit)
+- [ ] Docker
 - [ ] Document type classifier (invoice, receipt, other)
 - [ ] Evaluation on real receipts (SROIE)
-- [ ] API (FastAPI), review dashboard, Docker
 
 ## Project structure
 
@@ -295,6 +347,10 @@ results/                 saved evaluation output
 src/generate/            synthetic data: truth, formatting, PDF, dataset builder
 src/ocr/                 OCR reader, noise, preprocessing, evaluation
 src/extract/             dev/test split, parsing, keyword rules, value-based extractor, review layer
+src/pipeline.py          OCR, both extractors, merge and checks for one PDF
+src/api.py               FastAPI endpoint
+src/review.py            correction parsing and review record for the dashboard
+src/dashboard.py         Streamlit review page
 src/schema.py            data schema
 tests/                   automated tests
 ```

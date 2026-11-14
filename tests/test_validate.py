@@ -82,3 +82,25 @@ def test_one_cent_error_in_vat_is_flagged_with_zero_tolerance():
 def test_unknown_language_is_rejected():
     with pytest.raises(ValueError):
         review_reasons({}, "de")
+def test_one_cent_error_in_total_is_not_detected_known_limitation():
+    fields = {
+        "supplier": "Bright Maintenance Ltd",
+        "invoice_number": "20839",
+        "invoice_date": date(2026, 7, 5),
+        "vat_amount": Decimal("396.39"),
+        "total": Decimal("2378.34"),  # the real total is 2378.33
+    }
+
+    assert review_reasons(fields, "en") == []
+
+
+def test_one_cent_error_in_vat_is_detected():
+    fields = {
+        "supplier": "Bright Maintenance Ltd",
+        "invoice_number": "20839",
+        "invoice_date": date(2026, 7, 5),
+        "vat_amount": Decimal("396.40"),  # the real VAT is 396.39
+        "total": Decimal("2378.33"),
+    }
+
+    assert "vat_rate_mismatch" in review_reasons(fields, "en")        
