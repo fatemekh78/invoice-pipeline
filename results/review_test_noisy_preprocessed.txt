@@ -1,0 +1,43 @@
+NOTE: this is the test set. Run it once, at the very end, and do not tune on it.
+review layer | folder: data/synthetic_holdout | split: test | preprocessing: on
+
+===== noise: heavy =====
+
+en: 30 documents
+  invoices with a wrong value (any field):     1   flagged 0, SILENT 1
+  invoices with a wrong value (number/date/VAT/total):   1   flagged 0, SILENT 1
+  fully correct invoices:                     29   flagged for nothing 0
+  only missing fields (all flagged):           0
+    SILENT en_0089: total expected Decimal('1474.91') got Decimal('1474.9')
+
+sv: 30 documents
+  invoices with a wrong value (any field):     2   flagged 1, SILENT 1
+  invoices with a wrong value (number/date/VAT/total):   1   flagged 1, SILENT 0
+  fully correct invoices:                     27   flagged for nothing 0
+  only missing fields (all flagged):           1
+
+fi: 30 documents
+  invoices with a wrong value (any field):     0   flagged 0, SILENT 0
+  invoices with a wrong value (number/date/VAT/total):   0   flagged 0, SILENT 0
+  fully correct invoices:                     27   flagged for nothing 0
+  only missing fields (all flagged):           3
+
+===== noise: severe =====
+
+en: 30 documents
+  invoices with a wrong value (any field):     2   flagged 2, SILENT 0
+  invoices with a wrong value (number/date/VAT/total):   2   flagged 2, SILENT 0
+  fully correct invoices:                     26   flagged for nothing 0
+  only missing fields (all flagged):           2
+
+sv: 30 documents
+  invoices with a wrong value (any field):     3   flagged 1, SILENT 2
+  invoices with a wrong value (number/date/VAT/total):   1   flagged 1, SILENT 0
+  fully correct invoices:                     27   flagged for nothing 0
+  only missing fields (all flagged):           0
+
+fi: 30 documents
+  invoices with a wrong value (any field):     1   flagged 1, SILENT 0
+  invoices with a wrong value (number/date/VAT/total):   1   flagged 1, SILENT 0
+  fully correct invoices:                     26   flagged for nothing 0
+  only missing fields (all flagged):           3

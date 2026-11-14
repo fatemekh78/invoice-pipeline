@@ -1,14 +1,15 @@
 # Invoice Pipeline
 
 An end-to-end pipeline that reads invoices in English, Swedish and Finnish:
-synthetic data generation, OCR, and field extraction (supplier, invoice number,
-date, VAT, total). Document classification and an API are planned.
+synthetic data generation, OCR, field extraction (supplier, invoice number,
+date, VAT, total) and a review layer that flags doubtful results. A document
+classifier and an API are planned.
 
 This is my own project, built to learn document automation for accounting.
 
-**Status:** work in progress. Data generation, OCR evaluation, preprocessing and
-field extraction on clean pages are done. All results so far are on synthetic
-invoices.
+**Status:** work in progress. Data generation, OCR evaluation, preprocessing,
+field extraction and a review layer are done. All results so far are on
+synthetic invoices. The API, dashboard and document classifier are planned.
 
 ## What works so far
 
@@ -27,6 +28,8 @@ invoices.
 - **Preprocessing**: grayscale, median filter and upscaling before OCR.
 - **Field extraction**: keyword rules and a value-based extractor, evaluated on a
   development set and a held-out test set.
+- **Review layer**: merges the two extractors and flags doubtful invoices for
+  manual review (missing field, extractors disagree, VAT inconsistent with total).
 - **Tests**: automated tests for every module (`pytest`).
 
 ## Setup
@@ -78,6 +81,12 @@ Measure field extraction (development set, then the test set):
 ```bash
 python -m src.extract.evaluate --extractor values
 python -m src.extract.evaluate --extractor values --folder data/synthetic_holdout --split test
+```
+
+Measure the review layer (two extractors plus checks) under OCR noise:
+
+```bash
+python -m src.extract.review_eval --levels heavy severe --preprocess
 ```
 
 Run the tests:
@@ -166,6 +175,10 @@ Before the dev label words were added to the keyword rules, the same rules score
 share of invoices that happened to use the one label they knew. All failures were
 "not found" (`None`); none was a wrong value.
 
+The 100% on dev is expected: the keywords were taken from the same label
+wordings the generator uses for the development invoices. The informative
+number is the test column.
+
 Full output: `results/extract_rules_dev_clean.txt`,
 `results/extract_rules_dev_known_labels.txt`,
 `results/extract_rules_test_unseen_labels.txt`,
@@ -176,6 +189,60 @@ What this shows: a keyword list only recognises words it was given, while a
 value-based extractor does not depend on the wording. What it does not show: the
 value-based result depends on the synthetic invoices having exactly one date, one
 number and two amounts.
+
+### Each extractor alone under OCR noise
+
+Development set, preprocessing on, 30 invoices per language. In the `severe`
+English set, the keyword rules returned a wrong total or VAT for 3 invoices and
+the value-based extractor also for 3 (in one invoice it swapped the two
+amounts, so both VAT and total were wrong). Neither flagged these invoices.
+Supplier names also had errors in the other languages, mostly in letter case
+(`sjö` instead of `Sjö`).
+
+Full output: `results/extract_rules_dev_noisy_preprocessed.txt`,
+`results/extract_values_dev_noisy_preprocessed.txt`.
+
+## Review layer
+
+The two extractors are combined and checked so that a doubtful invoice goes to
+manual review instead of being booked with a wrong value.
+
+- **Merge** (`src/extract/validate.py`): if both extractors give the same value,
+  keep it. If only one finds a value, use it. If both find different values,
+  return `None` and flag the invoice.
+- **Checks**: a missing field; VAT larger than the total; VAT that does not
+  match the expected rate for the language (exact match, zero tolerance).
+
+### Results under OCR noise (preprocessing on, 30 invoices per language)
+
+Counted per invoice. "Critical" means invoice number, date, VAT or total.
+
+| Set | Noise | Invoices with a wrong critical value | Flagged | Silent |
+|---|---|---|---|---|
+| dev | heavy | 0 | 0 | 0 |
+| dev | severe | 2 (en) | 2 | 0 |
+| test | heavy | 2 (en 1, sv 1) | 1 | 1 |
+| test | severe | 4 (en 2, sv 1, fi 1) | 4 | 0 |
+
+No correct invoice was flagged in any run. Invoices with only missing fields are
+always flagged. Without the review layer, each extractor alone left 3 invoices
+with a wrong critical value unflagged on dev (severe, English); the layer
+brought this to 0 on dev. This was not measured on the test set.
+
+Full output: `results/review_dev_noisy_preprocessed.txt`,
+`results/review_test_noisy_preprocessed.txt`.
+
+### The one silent error
+
+On the test set, invoice `en_0089` had its total read as `1474.9` instead of
+`1474.91`. A one-cent error in the total cannot be detected from the VAT alone:
+the VAT check is only sensitive to larger errors. Detecting it would need
+redundancy on the invoice (for example a separate net amount or line items).
+
+### Supplier name
+
+The supplier name has no check. Supplier errors (on dev mostly letter-case
+differences) pass unflagged and are counted separately in the "any field" columns.
 
 ## Limitations
 
@@ -194,10 +261,19 @@ number and two amounts.
 - Synthetic invoices have exactly one date, one number and two amounts, which the
   value-based extractor relies on. Real invoices have line items, subtotals, due
   dates, phone numbers and bank details.
-- Extraction was measured on clean pages only; OCR errors in digits would produce
-  wrong values, not just missing ones.
+- Each extractor alone was measured under OCR noise on the development set only;
+  the combined review layer was measured on development and test (30 invoices per
+  language), so results under noise rest on small counts.
 - The held-out label wordings were written by me, so they are a test of unseen
   words, not of unseen invoice layouts.
+- The review checks were designed after seeing the errors on the development
+  set, so dev results for the review layer are optimistic.
+- The VAT-rate check uses one fixed rate per language and zero tolerance. Real
+  invoices can have several rates and different rounding.
+- The review layer was run once on the test set; its one silent error was not
+  fixed afterwards, to keep the test result honest.
+- Counts are small (30 invoices per language; 6 invoices with a wrong critical
+  value on test), so these numbers show what kinds of errors occur, not precise rates.
 
 ## Roadmap
 
@@ -205,7 +281,7 @@ number and two amounts.
 - [x] OCR reader and evaluation with noise levels
 - [x] Image preprocessing and before/after comparison
 - [x] Field extraction: keyword rules and value-based, with a held-out test set
-- [ ] Extraction under OCR noise (with and without preprocessing)
+- [x] Extraction under OCR noise (preprocessing on), with a review layer
 - [ ] Document type classifier (invoice, receipt, other)
 - [ ] Evaluation on real receipts (SROIE)
 - [ ] API (FastAPI), review dashboard, Docker
@@ -218,7 +294,7 @@ data/synthetic*/         generated PDFs, JSON labels and TXT files (not committe
 results/                 saved evaluation output
 src/generate/            synthetic data: truth, formatting, PDF, dataset builder
 src/ocr/                 OCR reader, noise, preprocessing, evaluation
-src/extract/             dev/test split, parsing, keyword rules, value-based extractor
+src/extract/             dev/test split, parsing, keyword rules, value-based extractor, review layer
 src/schema.py            data schema
 tests/                   automated tests
 ```
