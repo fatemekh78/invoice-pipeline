@@ -1,18 +1,18 @@
 import argparse
 import random
-
 from pathlib import Path
 
 from src.extract.rules import extract_fields
 from src.extract.split import list_documents
+from src.extract.values import extract_fields_by_value
 from src.ocr.evaluate import FIELD_NAMES, load_label
 from src.ocr.noise import NOISE_LEVELS, degrade_image
 from src.ocr.preprocess import preprocess_image
 from src.ocr.read import read_pdf_text
 from src.schema import InvoiceLabel
-from src.extract.values import extract_fields_by_value
 
 EXTRACTORS = {"rules": extract_fields, "values": extract_fields_by_value}
+
 
 def expected_values(label: InvoiceLabel) -> dict:
     return {
@@ -30,10 +30,9 @@ def evaluate_extraction(
     split: str = "dev",
     level: str = "clean",
     preprocess=None,
-       limit: int | None = None,
+    limit: int | None = None,
     extractor=extract_fields,
 ) -> dict:
-
     pdf_files = list_documents(folder, language, split)
     if limit:
         pdf_files = pdf_files[:limit]
@@ -76,7 +75,7 @@ def evaluate_extraction(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Measure field extraction accuracy (OCR + rules).")
+    parser = argparse.ArgumentParser(description="Measure field extraction accuracy (OCR + extractor).")
     parser.add_argument("--folder", default="data/synthetic_varied")
     parser.add_argument("--split", choices=["dev", "test"], default="dev")
     parser.add_argument("--limit", type=int, default=None, help="max invoices per language")
@@ -98,16 +97,16 @@ def main() -> None:
     for level in args.levels:
         print(f"\n===== noise: {level} =====")
         for language in ("en", "sv", "fi"):
-                        result = evaluate_extraction(
-                Path(args.folder), language, args.split, level, preprocess, args.limit,
-                EXTRACTORS[args.extractor],
+            result = evaluate_extraction(
+                Path(args.folder), language, args.split, level, preprocess,
+                args.limit, EXTRACTORS[args.extractor],
             )
-    print(f"\n{language}: {result['documents']} documents")
-    for name, rate in result["field_accuracy"].items():
+            print(f"\n{language}: {result['documents']} documents")
+            for name, rate in result["field_accuracy"].items():
                 print(f"  {name:<15} {rate:.1%}")
 
-                for failure in result["failures"][: args.show_failures]:
-                 print(f"    MISS {failure['document']} {failure['field']}: "
+            for failure in result["failures"][: args.show_failures]:
+                print(f"    MISS {failure['document']} {failure['field']}: "
                       f"expected {failure['expected']!r}, got {failure['got']!r}")
 
 

@@ -1,63 +1,32 @@
-# invoice-pipeline
-
-My own project, built from scratch.
-
-**Goal:** a pipeline that reads invoices and receipts, works out what kind of document each one is, and pulls the key fields (vendor, date, total) out into structured data. It is built and tested on synthetic invoices whose correct answers are known, then evaluated on real scanned receipts from the SROIE dataset.
-
-## Structure
-
-```
-invoice-pipeline/
-├── data/
-│   ├── synthetic/      # generated invoices (PDF + labels)
-│   └── sroie/          # real receipts
-├── src/
-│   ├── generate/       # synthetic invoice generator
-│   ├── ocr/
-│   ├── classify/
-│   └── extract/
-├── tests/
-└── README.md
-```
-
-## Setup
-
-```bash
-python -m venv .venv
-.venv\Scripts\activate        # Windows
-# source .venv/bin/activate   # macOS / Linux
-pip install -r requirements.txt
-```
-## Generate the synthetic dataset
-
-    python -m src.generate.build_dataset --count 100
-
-Creates PDF invoices (English, Swedish, Finnish) with a matching JSON answer file for each, in `data/synthetic/`.
-
-
 # Invoice Pipeline
 
 An end-to-end pipeline that reads invoices in English, Swedish and Finnish:
-synthetic data generation, OCR, and (in progress) document classification and
-field extraction.
+synthetic data generation, OCR, and field extraction (supplier, invoice number,
+date, VAT, total). Document classification and an API are planned.
 
 This is my own project, built to learn document automation for accounting.
 
-**Status:** work in progress. Data generation and OCR evaluation are done.
+**Status:** work in progress. Data generation, OCR evaluation, preprocessing and
+field extraction on clean pages are done. All results so far are on synthetic
+invoices.
 
 ## What works so far
 
 - **Data schema** (`src/schema.py`, `schema.md`): one validated record per
   document (supplier, invoice number, date, currency, total, VAT).
-- **Synthetic invoice generator**: creates PDF invoices in English, Swedish and
-  Finnish with local formats (decimal comma, date styles, VAT labels such as
-  *moms* and *ALV*), four different page layouts, and a JSON file with the
-  correct answer for each invoice.
+- **Synthetic invoice generator**: PDF invoices in English, Swedish and Finnish
+  with local formats (decimal comma, date styles, VAT labels such as *moms* and
+  *ALV*), four page layouts, a JSON file with the correct answer and a TXT file
+  with the printed text. An optional mode varies the label wording and the line
+  order, and a held-out mode uses wordings never seen in development.
 - **OCR reader**: PDF to image to text with Tesseract.
-- **OCR evaluation**: measures accuracy per language and per noise level, using
-  character error rate (CER) and per-field hit rate.
+- **OCR evaluation**: accuracy per language and noise level (character error
+  rate and per-field hit rate).
 - **Noise simulation**: tilt, blur, lower resolution and grain, calibrated into
   four levels (clean, mild, heavy, severe).
+- **Preprocessing**: grayscale, median filter and upscaling before OCR.
+- **Field extraction**: keyword rules and a value-based extractor, evaluated on a
+  development set and a held-out test set.
 - **Tests**: automated tests for every module (`pytest`).
 
 ## Setup
@@ -82,19 +51,33 @@ tesseract --list-langs     # should list eng, fin, swe
 
 ## Usage
 
-Generate the synthetic dataset (100 invoices per language):
+Generate the synthetic dataset (100 invoices per language). This creates a PDF,
+a JSON answer file and a TXT file with the printed text for each invoice:
 
 ```bash
 python -m src.generate.build_dataset --count 100
 ```
 
-This creates a PDF and a matching JSON answer file for each invoice in
-`data/synthetic/`.
+Generate the varied datasets used for extraction (the second one uses held-out
+label wordings for invoices 71 and up):
+
+```bash
+python -m src.generate.build_dataset --count 100 --varied --out data/synthetic_varied
+python -m src.generate.build_dataset --count 100 --varied --holdout --out data/synthetic_holdout
+```
 
 Measure OCR accuracy:
 
 ```bash
 python -m src.ocr.evaluate --limit 30
+python -m src.ocr.evaluate --limit 30 --levels heavy severe --preprocess
+```
+
+Measure field extraction (development set, then the test set):
+
+```bash
+python -m src.extract.evaluate --extractor values
+python -m src.extract.evaluate --extractor values --folder data/synthetic_holdout --split test
 ```
 
 Run the tests:
@@ -126,8 +109,7 @@ gradually. Strong random grain was the main problem: above a certain strength
 Tesseract fails on a whole page rather than on single characters (this is why
 all fields in the `severe` rows are almost equal).
 
-### Preprocessing (in progress)
-### Preprocessing
+## Preprocessing
 
 Before OCR, each image is converted to grayscale, cleaned with a 3x3 median
 filter (removes grain) and upscaled by 1.5 (from 200 to about 300 DPI). Same
@@ -149,39 +131,94 @@ within the noise of a 30-invoice sample).
 
 Full output: `results/ocr_preprocessed.txt`.
 
+## Field extraction
+
+Two extractors read the OCR text and return the five fields. A field they cannot
+find is returned as `None`, never as a guess, so such an invoice could be sent to
+manual review.
+
+- **Keyword rules** (`src/extract/rules.py`): a value follows a known label word
+  such as `Total` or `Yhteensä`.
+- **Value-based** (`src/extract/values.py`): ignores the label and uses what the
+  value looks like. Two amounts: the larger is the total, the smaller is the VAT.
+  One date. One number of three or more digits.
+
+### Data split
+
+Invoices 1-70 per language are the development set (used to design and debug).
+Invoices 71-100 are the test set. In the test set the label wordings are ones
+that appear nowhere in the development data and nowhere in the rules (for
+example `Net payable`, `Kokonaissumma`, `Slutsumma`). The keyword rules were
+frozen before the test set was run. The value-based extractor was run on the
+test set before the development set and was not changed after seeing the result.
+A unit test of the value-based extractor (`tests/test_values.py`) uses the
+held-out wordings on generated text; the extractor was not modified because of it.
+
+### Results (clean pages; 70 dev and 30 test invoices per language)
+
+| Extractor | Dev, known labels | Test, unseen labels |
+|---|---|---|
+| Keyword rules | 100% on all fields | supplier 100%, other four fields 0% |
+| Value-based | 100% on all fields | 100% on all fields |
+
+Before the dev label words were added to the keyword rules, the same rules scored
+14-60% per field on dev (supplier 100%, English VAT 100% by accident), roughly the
+share of invoices that happened to use the one label they knew. All failures were
+"not found" (`None`); none was a wrong value.
+
+Full output: `results/extract_rules_dev_clean.txt`,
+`results/extract_rules_dev_known_labels.txt`,
+`results/extract_rules_test_unseen_labels.txt`,
+`results/extract_values_dev.txt`,
+`results/extract_values_test_unseen_labels.txt`.
+
+What this shows: a keyword list only recognises words it was given, while a
+value-based extractor does not depend on the wording. What it does not show: the
+value-based result depends on the synthetic invoices having exactly one date, one
+number and two amounts.
+
 ## Limitations
 
-- All documents are **synthetic**: one font, one page, clean layout. Results
-  show how OCR behaves under controlled damage, not how it performs on real
+- All documents are **synthetic**: one font, one page, clean layout. Results show
+  how the pipeline behaves under controlled changes, not how it performs on real
   scanned invoices.
-- The noise is random grain added to every pixel, which is harsher for
-  Tesseract than the noise of a real scanner or phone camera.
-- With 30 invoices per language, one failed page changes a result by about
-  3 percentage points, so small differences between languages are not
-  meaningful.
+- The noise is random grain added to every pixel, which is harsher for Tesseract
+  than the noise of a real scanner or phone camera.
+- With 30 invoices per language, one failed page changes a result by about 3
+  percentage points, so small differences between languages are not meaningful.
 - Invoices contain only five fields and no line items or tables.
-- The median filter is well matched to this synthetic noise (independent
-  per-pixel grain). Gains on real scans may be smaller.
-- Preprocessing was chosen after seeing the baseline results and evaluated on
-  the same invoices; no parameters were tuned.
+- The median filter is well matched to this synthetic noise (independent per-pixel
+  grain). Gains on real scans may be smaller.
+- Preprocessing was chosen after seeing the baseline results and evaluated on the
+  same invoices; no parameters were tuned.
+- Synthetic invoices have exactly one date, one number and two amounts, which the
+  value-based extractor relies on. Real invoices have line items, subtotals, due
+  dates, phone numbers and bank details.
+- Extraction was measured on clean pages only; OCR errors in digits would produce
+  wrong values, not just missing ones.
+- The held-out label wordings were written by me, so they are a test of unseen
+  words, not of unseen invoice layouts.
 
 ## Roadmap
 
 - [x] Data schema, synthetic generator, tests
 - [x] OCR reader and evaluation with noise levels
 - [x] Image preprocessing and before/after comparison
+- [x] Field extraction: keyword rules and value-based, with a held-out test set
+- [ ] Extraction under OCR noise (with and without preprocessing)
 - [ ] Document type classifier (invoice, receipt, other)
-- [ ] Field extraction (rules first, then a trained model)
-- [ ] API (FastAPI) and review dashboard, Docker
+- [ ] Evaluation on real receipts (SROIE)
+- [ ] API (FastAPI), review dashboard, Docker
 
 ## Project structure
 
 ```
-assets/fonts/      DejaVu Sans fonts used for the PDFs
-data/synthetic/    generated PDFs and JSON labels (not committed)
-results/           saved evaluation output
-src/generate/      synthetic data: truth, formatting, PDF, dataset builder
-src/ocr/           OCR reader, noise, preprocessing, evaluation
-src/schema.py      data schema
-tests/             automated tests
+assets/fonts/            DejaVu Sans fonts used for the PDFs
+data/synthetic*/         generated PDFs, JSON labels and TXT files (not committed)
+results/                 saved evaluation output
+src/generate/            synthetic data: truth, formatting, PDF, dataset builder
+src/ocr/                 OCR reader, noise, preprocessing, evaluation
+src/extract/             dev/test split, parsing, keyword rules, value-based extractor
+src/schema.py            data schema
+tests/                   automated tests
 ```

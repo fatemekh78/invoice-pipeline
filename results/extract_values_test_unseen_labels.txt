@@ -3,6 +3,20 @@ extractor: values | folder: data/synthetic_holdout | split: test | preprocessing
 
 ===== noise: clean =====
 
+en: 30 documents
+  supplier        100.0%
+  invoice_number  100.0%
+  invoice_date    100.0%
+  vat_amount      100.0%
+  total           100.0%
+
+sv: 30 documents
+  supplier        100.0%
+  invoice_number  100.0%
+  invoice_date    100.0%
+  vat_amount      100.0%
+  total           100.0%
+
 fi: 30 documents
   supplier        100.0%
   invoice_number  100.0%
