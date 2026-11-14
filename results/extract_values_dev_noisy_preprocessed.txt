@@ -1,0 +1,66 @@
+extractor: values | folder: data/synthetic_varied | split: dev | preprocessing: on
+
+===== noise: heavy =====
+
+en: 30 documents (correct / missing / WRONG)
+  supplier        100.0%    0.0%    0.0%
+  invoice_number   96.7%    3.3%    0.0%
+  invoice_date    100.0%    0.0%    0.0%
+  vat_amount       96.7%    3.3%    0.0%
+  total            96.7%    3.3%    0.0%
+    MISSING en_0022 invoice_number: expected '94078', got None
+    MISSING en_0029 vat_amount: expected Decimal('735.12'), got None
+    MISSING en_0029 total: expected Decimal('4410.74'), got None
+
+sv: 30 documents (correct / missing / WRONG)
+  supplier         93.3%    0.0%    6.7%
+  invoice_number  100.0%    0.0%    0.0%
+  invoice_date    100.0%    0.0%    0.0%
+  vat_amount      100.0%    0.0%    0.0%
+  total           100.0%    0.0%    0.0%
+    WRONG sv_0002 supplier: expected 'Björk Service AB', got 'Björk service AB'
+    WRONG sv_0017 supplier: expected 'Nordic Partihandel AB', got 'Nordic partihandel AB'
+
+fi: 30 documents (correct / missing / WRONG)
+  supplier         96.7%    3.3%    0.0%
+  invoice_number  100.0%    0.0%    0.0%
+  invoice_date    100.0%    0.0%    0.0%
+  vat_amount      100.0%    0.0%    0.0%
+  total           100.0%    0.0%    0.0%
+    MISSING fi_0002 supplier: expected 'Salo Tekniikka Oy', got None
+
+===== noise: severe =====
+
+en: 30 documents (correct / missing / WRONG)
+  supplier        100.0%    0.0%    0.0%
+  invoice_number  100.0%    0.0%    0.0%
+  invoice_date     96.7%    3.3%    0.0%
+  vat_amount       93.3%    0.0%    6.7%
+  total            93.3%    0.0%    6.7%
+    WRONG en_0005 total: expected Decimal('4691.40'), got Decimal('469140')
+    WRONG en_0007 vat_amount: expected Decimal('785.19'), got Decimal('471.13')
+    WRONG en_0007 total: expected Decimal('4711.13'), got Decimal('785.19')
+    MISSING en_0021 invoice_date: expected datetime.date(2026, 10, 21), got None
+    WRONG en_0021 vat_amount: expected Decimal('880.41'), got Decimal('880.4')
+
+sv: 30 documents (correct / missing / WRONG)
+  supplier         86.7%    0.0%   13.3%
+  invoice_number  100.0%    0.0%    0.0%
+  invoice_date    100.0%    0.0%    0.0%
+  vat_amount      100.0%    0.0%    0.0%
+  total           100.0%    0.0%    0.0%
+    WRONG sv_0007 supplier: expected 'Holm Partihandel AB', got 'Holm partihandel AB'
+    WRONG sv_0013 supplier: expected 'Sjö Partihandel AB', got 'sjö Partihandel AB'
+    WRONG sv_0016 supplier: expected 'Vik Partihandel AB', got 'Vik partihandel AB'
+    WRONG sv_0017 supplier: expected 'Nordic Partihandel AB', got 'Nordic partihandel AB'
+
+fi: 30 documents (correct / missing / WRONG)
+  supplier         86.7%    6.7%    6.7%
+  invoice_number  100.0%    0.0%    0.0%
+  invoice_date    100.0%    0.0%    0.0%
+  vat_amount      100.0%    0.0%    0.0%
+  total           100.0%    0.0%    0.0%
+    MISSING fi_0008 supplier: expected 'Nordic Kauppa Oy', got None
+    WRONG fi_0010 supplier: expected 'Rinne Kauppa Oy', got 'Rinne KaupPa Oy'
+    WRONG fi_0020 supplier: expected 'Salo Rakennus Oy', got 'salo Rakennus Oy'
+    MISSING fi_0029 supplier: expected 'Harju Logistiikka Oy', got None

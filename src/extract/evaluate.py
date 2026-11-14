@@ -37,7 +37,9 @@ def evaluate_extraction(
     if limit:
         pdf_files = pdf_files[:limit]
 
-    hits = {name: 0 for name in FIELD_NAMES}
+    correct = {name: 0 for name in FIELD_NAMES}
+    missing = {name: 0 for name in FIELD_NAMES}  # extractor returned None (safe)
+    wrong = {name: 0 for name in FIELD_NAMES}    # extractor returned a wrong value (dangerous)
     failures = []
 
     for pdf_path in pdf_files:
@@ -57,19 +59,32 @@ def evaluate_extraction(
 
         for name in FIELD_NAMES:
             if extracted[name] == expected[name]:
-                hits[name] += 1
+                correct[name] += 1
+                continue
+
+            kind = "MISSING" if extracted[name] is None else "WRONG"
+            if kind == "MISSING":
+                missing[name] += 1
             else:
-                failures.append({
-                    "document": pdf_path.stem,
-                    "field": name,
-                    "expected": expected[name],
-                    "got": extracted[name],
-                })
+                wrong[name] += 1
+            failures.append({
+                "kind": kind,
+                "document": pdf_path.stem,
+                "field": name,
+                "expected": expected[name],
+                "got": extracted[name],
+            })
 
     count = len(pdf_files)
+
+    def rate(counter: dict) -> dict:
+        return {name: counter[name] / count if count else 0.0 for name in FIELD_NAMES}
+
     return {
         "documents": count,
-        "field_accuracy": {name: hits[name] / count if count else 0.0 for name in FIELD_NAMES},
+        "field_accuracy": rate(correct),
+        "field_missing": rate(missing),
+        "field_wrong": rate(wrong),
         "failures": failures,
     }
 
@@ -101,12 +116,15 @@ def main() -> None:
                 Path(args.folder), language, args.split, level, preprocess,
                 args.limit, EXTRACTORS[args.extractor],
             )
-            print(f"\n{language}: {result['documents']} documents")
-            for name, rate in result["field_accuracy"].items():
-                print(f"  {name:<15} {rate:.1%}")
+            print(f"\n{language}: {result['documents']} documents "
+                  f"(correct / missing / WRONG)")
+            for name in FIELD_NAMES:
+                print(f"  {name:<15} {result['field_accuracy'][name]:6.1%}"
+                      f"  {result['field_missing'][name]:6.1%}"
+                      f"  {result['field_wrong'][name]:6.1%}")
 
             for failure in result["failures"][: args.show_failures]:
-                print(f"    MISS {failure['document']} {failure['field']}: "
+                print(f"    {failure['kind']} {failure['document']} {failure['field']}: "
                       f"expected {failure['expected']!r}, got {failure['got']!r}")
 
 
