@@ -6,3 +6,7 @@ pytesseract
 pymupdf
 rapidfuzz
 numpy
+fastapi
+uvicorn
+python-multipart
+httpx

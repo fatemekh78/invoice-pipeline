@@ -14,10 +14,12 @@ TESSERACT_LANGUAGE = {"en": "eng", "sv": "swe", "fi": "fin"}
 
 
 def pdf_to_image(pdf_path: Path, dpi: int = 200) -> Image.Image:
-    with pymupdf.open(str(pdf_path)) as document:
+    # Read the bytes first, so no file handle stays open on the path
+    # (an open handle blocks deleting the temp file on Windows)
+    data = Path(pdf_path).read_bytes()
+    with pymupdf.open(stream=data, filetype="pdf") as document:
         pixmap = document[0].get_pixmap(dpi=dpi)  # first page only
         return Image.frombytes("RGB", (pixmap.width, pixmap.height), pixmap.samples)
-
 
 def read_pdf_text(pdf_path: Path, language: str, transform=None, preprocess=None) -> str:
     if language not in TESSERACT_LANGUAGE:
