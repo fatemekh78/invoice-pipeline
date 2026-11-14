@@ -2,15 +2,16 @@
 
 An end-to-end pipeline that reads invoices in English, Swedish and Finnish:
 synthetic data generation, OCR, field extraction (supplier, invoice number,
-date, VAT, total), a review layer that flags doubtful results, an API and a
-small review dashboard. A document classifier and Docker packaging are planned.
+date, VAT, total), a review layer that flags doubtful results, an API, a small
+review dashboard and a Docker image. A document type classifier and evaluation
+on real receipts are planned.
 
 This is my own project, built to learn document automation for accounting.
 
 **Status:** work in progress. Data generation, OCR evaluation, preprocessing,
-field extraction, the review layer, the API and the review dashboard are done.
-All results so far are on synthetic invoices. Docker packaging and a document
-type classifier are planned.
+field extraction, the review layer, the API, the review dashboard and Docker
+packaging are done. All results so far are on synthetic invoices. A document
+type classifier and evaluation on real receipts are planned.
 
 ## What works so far
 
@@ -36,6 +37,8 @@ type classifier are planned.
 - **Review dashboard** (`src/dashboard.py`): Streamlit page that shows the
   invoice next to the extracted fields and review reasons, lets a person correct
   values, and exports the reviewed record with the original and corrected values.
+- **Docker image**: Tesseract with English, Finnish and Swedish, the app and the
+  tests, with pinned dependency versions.
 - **Tests**: automated tests for every module (`pytest`).
 
 ## Setup
@@ -118,6 +121,22 @@ Run the tests:
 ```bash
 python -m pytest -v
 ```
+
+### Docker
+
+The image includes Tesseract with English, Finnish and Swedish, so nothing else
+needs to be installed:
+
+```bash
+docker build -t invoice-pipeline .
+docker run --rm invoice-pipeline python -m pytest -q
+docker run --rm -p 127.0.0.1:8000:8000 invoice-pipeline
+docker run --rm -p 127.0.0.1:8501:8501 invoice-pipeline python -m streamlit run src/dashboard.py --server.address 0.0.0.0 --server.port 8501 --server.headless true --browser.gatherUsageStats false
+```
+
+Versions are pinned in `requirements.lock.txt` (taken from the image after the
+tests passed); `requirements.txt` lists the direct dependencies. The ports are
+bound to 127.0.0.1 because the API and the dashboard have no login.
 
 ## OCR results (baseline, no preprocessing)
 
@@ -324,6 +343,10 @@ extractors, the merge and the checks.
 - The API and the dashboard are local tools without login, storage or
   multi-user support. The dashboard was tried by hand; only its logic
   (`src/review.py`) has automated tests.
+- - The Docker image was only tried on one machine. In the image the tests pass
+  (151), the API returned the same fields as on Windows for the one invoice
+  tried by hand, and the dashboard produced a reviewed record with the original
+  and corrected values. The Tesseract version comes from the Debian package.
 
 ## Roadmap
 
@@ -334,9 +357,9 @@ extractors, the merge and the checks.
 - [x] Extraction under OCR noise (preprocessing on), with a review layer
 - [x] API (FastAPI)
 - [x] Review dashboard (Streamlit)
-- [ ] Docker
-- [ ] Document type classifier (invoice, receipt, other)
+- [x] Docker
 - [ ] Evaluation on real receipts (SROIE)
+- [ ] Document type classifier (invoice, receipt, other)
 
 ## Project structure
 
@@ -353,4 +376,7 @@ src/review.py            correction parsing and review record for the dashboard
 src/dashboard.py         Streamlit review page
 src/schema.py            data schema
 tests/                   automated tests
+Dockerfile               image with Tesseract, the app and the tests
+requirements.txt         direct dependencies
+requirements.lock.txt    pinned versions used in the image
 ```
