@@ -6,7 +6,9 @@ date, VAT, total), a review layer that flags doubtful results, an API, a small
 review dashboard and a Docker image. A document type classifier and evaluation
 on real receipts are planned.
 
-This is my own project, built to learn document automation for accounting.
+I built this project step by step with an AI coding assistant (Claude) to learn
+document automation for accounting. I chose the design and ran, debugged and
+documented every experiment myself.
 
 **Status:** work in progress. Data generation, OCR evaluation, preprocessing,
 field extraction, the review layer, the API, the review dashboard and Docker
@@ -343,7 +345,7 @@ extractors, the merge and the checks.
 - The API and the dashboard are local tools without login, storage or
   multi-user support. The dashboard was tried by hand; only its logic
   (`src/review.py`) has automated tests.
-- - The Docker image was only tried on one machine. In the image the tests pass
+- The Docker image was only tried on one machine. In the image the tests pass
   (151), the API returned the same fields as on Windows for the one invoice
   tried by hand, and the dashboard produced a reviewed record with the original
   and corrected values. The Tesseract version comes from the Debian package.
